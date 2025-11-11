@@ -35,9 +35,11 @@ export class Connection {
 
             try {
                 // Socket.IO 연결 옵션 설정
+                // auth 객체 사용 (Node.js와 브라우저 환경 모두 지원)
+                // extraHeaders는 Socket.IO 연결에서 지원되지 않음 (Express REST API에서만 사용)
                 const socketOptions: any = {
-                    extraHeaders: {
-                        'x-project-key': this.options.projectKey,
+                    auth: {
+                        key: this.options.projectKey,
                     },
                     reconnection: this.options.reconnection ?? true,
                     reconnectionAttempts: this.options.reconnectionAttempts ?? 5,

@@ -32,20 +32,25 @@ SDK는 Socket.IO를 기반으로 한 이벤트 기반 통신을 사용합니다.
 
 **전달 방식**:
 
--   `extraHeaders['x-project-key']`: HTTP 헤더로 전달
+-   `auth.key`: Socket.IO auth 객체로 전달 (권장)
+-   `query.key`: 쿼리 파라미터로도 전달 가능 (대안)
 
 **코드**:
 
 ```typescript
 // Connection 클래스에서 자동 처리
 const socketOptions = {
-    extraHeaders: {
-        'x-project-key': this.options.projectKey,
+    auth: {
+        key: this.options.projectKey,
     },
 };
 ```
 
-**참고**: Socket.IO는 WebSocket 핸드셰이크 시 HTTP 헤더를 사용합니다. 브라우저 환경에서는 CORS 정책에 따라 제한될 수 있습니다.
+**참고**:
+
+-   `auth` 객체는 Node.js와 브라우저 환경 모두에서 안정적으로 작동합니다
+-   `extraHeaders`는 Socket.IO 연결에서 지원되지 않습니다 (Express REST API에서만 사용)
+-   백엔드 서버는 `socket.handshake.auth?.key` 또는 `socket.handshake.query?.key`를 확인합니다
 
 ---
 

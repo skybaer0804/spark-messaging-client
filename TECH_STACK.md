@@ -65,14 +65,20 @@
 
 ```typescript
 const socketOptions = {
-    extraHeaders: {
-        'x-project-key': projectKey,
+    auth: {
+        key: projectKey,
     },
     reconnection: true,
     reconnectionAttempts: 5,
     reconnectionDelay: 1000,
 };
 ```
+
+**인증 방식**:
+
+-   `auth.key`: Socket.IO auth 객체 사용 (권장, Node.js/브라우저 모두 지원)
+-   `query.key`: 쿼리 파라미터 사용 (대안, URL에 노출되므로 보안상 덜 권장)
+-   `extraHeaders`: Socket.IO 연결에서 지원되지 않음 (Express REST API에서만 사용)
 
 **의존성 이유**:
 

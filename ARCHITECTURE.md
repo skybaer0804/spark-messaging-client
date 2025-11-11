@@ -186,7 +186,7 @@ private pendingConnectedCallbacks: ConnectedCallback[] = [];
 -   Socket 인스턴스 생성 및 관리
 -   연결 상태 추적 (`isConnecting`, `connected`)
 -   재연결 설정 관리
--   인증 정보 전달 (HTTP 헤더: `x-project-key`)
+-   인증 정보 전달 (`auth.key` 객체 사용)
 
 **주요 메서드**:
 
@@ -435,7 +435,7 @@ type ErrorCallback = (error: ErrorData) => void;
         ├─> Connection.connect()
         │     │
         │     ├─> io(serverUrl, socketOptions)
-        │     │     └─> extraHeaders: { 'x-project-key': key }
+        │     │     └─> auth: { key }
         │     │
         │     ├─> socket.on('connect')
         │     │     └─> resolve()
@@ -658,10 +658,10 @@ errorHandler.handleError(error);
 
 ## 보안 고려사항
 
-1. **인증**: 프로젝트 키를 HTTP 헤더(`x-project-key`)로 전달
+1. **인증**: 프로젝트 키를 `auth.key` 객체로 전달 (Node.js/브라우저 모두 지원)
 2. **에러 메시지**: 민감한 정보 노출 방지
 3. **타입 검증**: TypeScript로 런타임 전 타입 검증
-4. **브라우저 환경**: CORS 정책에 따라 헤더 전달이 제한될 수 있음 (서버 측 CORS 설정 필요)
+4. **재연결 시 인증**: Socket.IO가 자동 재연결 시에도 동일한 `auth` 객체를 사용하여 인증 정보가 자동 전달됨
 
 ---
 
