@@ -1,0 +1,10 @@
+src/
+test/
+examples/
+*.config.js
+*.config.ts
+tsconfig.json
+.gitignore
+.npmignore
+.env.example
+
