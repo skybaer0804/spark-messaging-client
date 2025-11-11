@@ -36,11 +36,8 @@ export class Connection {
             try {
                 // Socket.IO 연결 옵션 설정
                 const socketOptions: any = {
-                    auth: {
-                        key: this.options.projectKey,
-                    },
-                    query: {
-                        key: this.options.projectKey,
+                    extraHeaders: {
+                        'x-project-key': this.options.projectKey,
                     },
                     reconnection: this.options.reconnection ?? true,
                     reconnectionAttempts: this.options.reconnectionAttempts ?? 5,

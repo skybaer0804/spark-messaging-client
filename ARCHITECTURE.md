@@ -186,7 +186,7 @@ private pendingConnectedCallbacks: ConnectedCallback[] = [];
 -   Socket 인스턴스 생성 및 관리
 -   연결 상태 추적 (`isConnecting`, `connected`)
 -   재연결 설정 관리
--   인증 정보 전달 (auth, query)
+-   인증 정보 전달 (HTTP 헤더: `x-project-key`)
 
 **주요 메서드**:
 
@@ -435,8 +435,7 @@ type ErrorCallback = (error: ErrorData) => void;
         ├─> Connection.connect()
         │     │
         │     ├─> io(serverUrl, socketOptions)
-        │     │     ├─> auth: { key }
-        │     │     └─> query: { key }
+        │     │     └─> extraHeaders: { 'x-project-key': key }
         │     │
         │     ├─> socket.on('connect')
         │     │     └─> resolve()
@@ -659,9 +658,10 @@ errorHandler.handleError(error);
 
 ## 보안 고려사항
 
-1. **인증**: 프로젝트 키를 `auth`와 `query` 모두에 전달
+1. **인증**: 프로젝트 키를 HTTP 헤더(`x-project-key`)로 전달
 2. **에러 메시지**: 민감한 정보 노출 방지
 3. **타입 검증**: TypeScript로 런타임 전 타입 검증
+4. **브라우저 환경**: CORS 정책에 따라 헤더 전달이 제한될 수 있음 (서버 측 CORS 설정 필요)
 
 ---
 

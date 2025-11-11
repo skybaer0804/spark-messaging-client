@@ -32,22 +32,20 @@ SDK는 Socket.IO를 기반으로 한 이벤트 기반 통신을 사용합니다.
 
 **전달 방식**:
 
--   `auth.key`: 인증 키
--   `query.key`: 쿼리 파라미터로도 전달
+-   `extraHeaders['x-project-key']`: HTTP 헤더로 전달
 
 **코드**:
 
 ```typescript
 // Connection 클래스에서 자동 처리
 const socketOptions = {
-    auth: {
-        key: this.options.projectKey,
-    },
-    query: {
-        key: this.options.projectKey,
+    extraHeaders: {
+        'x-project-key': this.options.projectKey,
     },
 };
 ```
+
+**참고**: Socket.IO는 WebSocket 핸드셰이크 시 HTTP 헤더를 사용합니다. 브라우저 환경에서는 CORS 정책에 따라 제한될 수 있습니다.
 
 ---
 

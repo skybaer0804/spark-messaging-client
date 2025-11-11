@@ -65,8 +65,9 @@
 
 ```typescript
 const socketOptions = {
-    auth: { key: projectKey },
-    query: { key: projectKey },
+    extraHeaders: {
+        'x-project-key': projectKey,
+    },
     reconnection: true,
     reconnectionAttempts: 5,
     reconnectionDelay: 1000,
