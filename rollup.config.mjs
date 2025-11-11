@@ -9,11 +9,13 @@ export default {
             file: 'dist/index.js',
             format: 'cjs',
             sourcemap: true,
+            exports: 'auto', // default와 named export 자동 감지
         },
         {
             file: 'dist/index.esm.js',
             format: 'esm',
             sourcemap: true,
+            exports: 'auto',
         },
     ],
     plugins: [

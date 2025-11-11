@@ -13,6 +13,9 @@ build/
 .env.local
 .env.*.local
 
+# 예시 디렉토리의 실제 .env 파일은 제외하되, .env.example은 포함
+# examples/frontend-config/.env
+
 # IDE
 .vscode/
 .idea/

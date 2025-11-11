@@ -1,5 +1,5 @@
 {
-    "name": "spark-messaging-client",
+    "name": "@skybaer0804/spark-messaging-client",
     "version": "1.0.0",
     "description": "Spark Messaging Server를 위한 Socket.IO 클라이언트 SDK",
     "main": "dist/index.js",
@@ -18,7 +18,7 @@
         "real-time",
         "sdk"
     ],
-    "author": "",
+    "author": "Nodejs <nodejs1234@naver.com>",
     "license": "MIT",
     "dependencies": {
         "socket.io-client": "^4.7.2"
@@ -34,6 +34,20 @@
     },
     "files": [
         "dist",
-        "README.md"
-    ]
+        "README.md",
+        "FRONTEND_SETUP.md",
+        "DEVELOPER_GUIDE.md",
+        "DEPLOYMENT.md"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/skybaer0804/spark-messaging-client.git"
+    },
+    "homepage": "https://github.com/skybaer0804/spark-messaging-client#readme",
+    "bugs": {
+        "url": "https://github.com/skybaer0804/spark-messaging-client/issues"
+    },
+    "publishConfig": {
+        "access": "public"
+    }
 }

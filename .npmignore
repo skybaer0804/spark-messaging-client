@@ -1,10 +1,16 @@
 src/
 test/
-examples/
 *.config.js
 *.config.ts
+*.config.mjs
 tsconfig.json
 .gitignore
 .npmignore
+.env
 .env.example
+*.md
+!README.md
+!FRONTEND_SETUP.md
+!DEVELOPER_GUIDE.md
+!DEPLOYMENT.md
 
