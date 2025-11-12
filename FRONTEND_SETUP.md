@@ -40,13 +40,26 @@ pnpm add spark-messaging-client
 
 **TypeScript/JavaScript (ES Module)**:
 
+**방법 1: 옵션 객체로 초기화** (권장):
+
 ```typescript
 import SparkMessaging from 'spark-messaging-client';
 
 const client = new SparkMessaging({
     serverUrl: 'http://localhost:3000',
     projectKey: 'default-project-key-12345', // API 키
+    autoConnect: true, // 기본값: true (자동 연결)
+    debug: false, // 기본값: false (디버그 모드)
 });
+```
+
+**방법 2: 생성자 오버로드 (간단한 사용)**:
+
+```typescript
+import SparkMessaging from 'spark-messaging-client';
+
+// serverUrl과 projectKey를 직접 전달
+const client = new SparkMessaging('http://localhost:3000', 'default-project-key-12345');
 ```
 
 **CommonJS**:
@@ -54,18 +67,71 @@ const client = new SparkMessaging({
 ```javascript
 const SparkMessaging = require('spark-messaging-client').default;
 
+// 옵션 객체로 초기화
 const client = new SparkMessaging({
     serverUrl: 'http://localhost:3000',
     projectKey: 'default-project-key-12345',
 });
+
+// 또는 생성자 오버로드
+const client = new SparkMessaging('http://localhost:3000', 'default-project-key-12345');
 ```
 
-### 2. 이벤트 핸들링
+### 초기화 옵션
 
 ```typescript
-// 연결 성공
+interface SparkMessagingOptions {
+    serverUrl: string; // 서버 URL (필수)
+    projectKey: string; // 프로젝트 키 (필수)
+    autoConnect?: boolean; // 자동 연결 (기본값: true)
+    reconnection?: boolean; // 자동 재연결 (기본값: true)
+    reconnectionAttempts?: number; // 재연결 시도 횟수 (기본값: 5)
+    reconnectionDelay?: number; // 재연결 지연 시간(ms) (기본값: 1000)
+    debug?: boolean; // 디버그 모드 (기본값: false)
+}
+```
+
+### 2. 연결 관리
+
+```typescript
+// 수동 연결 (autoConnect: false인 경우)
+await client.connect();
+
+// 연결 상태 확인
+const isConnected = client.isConnected();
+
+// 연결 상태 정보 가져오기
+const status = client.getConnectionStatus();
+console.log('연결 상태:', status);
+// {
+//   isConnected: true,
+//   socketId: 'abc123',
+//   connectedAt: Date
+// }
+
+// Socket ID 가져오기
+const socketId = client.getSocketId();
+
+// 연결 완료까지 대기 (이미 연결되어 있으면 즉시 반환)
+const connectionData = await client.waitForConnection();
+console.log('연결 완료:', connectionData.socketId);
+
+// 연결 종료
+client.disconnect();
+```
+
+### 3. 이벤트 핸들링
+
+```typescript
+// 연결 성공 (이미 연결되어 있으면 즉시 콜백 호출)
 client.onConnected((data) => {
     console.log('연결 성공:', data.socketId);
+    console.log('연결 시간:', data.connectedAt);
+});
+
+// 연결 상태 변경 이벤트
+client.onConnectionStateChange((isConnected) => {
+    console.log('연결 상태 변경:', isConnected ? '연결됨' : '연결 끊김');
 });
 
 // 메시지 수신
@@ -73,9 +139,29 @@ client.onMessage((data) => {
     console.log('메시지:', data);
 });
 
-// 에러 처리
+// 방 메시지 수신
+client.onRoomMessage((data) => {
+    console.log('방 메시지:', data);
+});
+
+// Room 입장 이벤트
+client.onRoomJoined((roomId) => {
+    console.log('Room 입장:', roomId);
+});
+
+// Room 나가기 이벤트
+client.onRoomLeft((roomId) => {
+    console.log('Room 나가기:', roomId);
+});
+
+// 에러 처리 (SparkMessagingError 또는 ErrorData)
 client.onError((error) => {
-    console.error('에러:', error.message);
+    if (error instanceof SparkMessagingError) {
+        console.error('에러 코드:', error.code);
+        console.error('에러 메시지:', error.message);
+    } else {
+        console.error('에러:', error.message);
+    }
 });
 ```
 
@@ -207,24 +293,36 @@ src/
 
 ```typescript
 import SparkMessaging from 'spark-messaging-client';
+import type { SparkMessagingError } from 'spark-messaging-client';
 
 // 환경 변수에서 로드
 const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000';
 const projectKey = import.meta.env.VITE_PROJECT_KEY || 'default-project-key-12345';
 
-// SDK 인스턴스 생성
+// SDK 인스턴스 생성 (디버그 모드 활성화)
 export const sparkMessagingClient = new SparkMessaging({
     serverUrl,
     projectKey,
+    debug: import.meta.env.DEV, // 개발 환경에서만 디버그 모드
+    autoConnect: true,
 });
 
 // 이벤트 핸들링
 sparkMessagingClient.onConnected((data) => {
     console.log('✅ Spark Messaging 연결 성공:', data.socketId);
+    console.log('연결 시간:', data.connectedAt);
+});
+
+sparkMessagingClient.onConnectionStateChange((isConnected) => {
+    console.log('연결 상태:', isConnected ? '연결됨' : '연결 끊김');
 });
 
 sparkMessagingClient.onError((error) => {
-    console.error('❌ Spark Messaging 에러:', error.message);
+    if (error instanceof SparkMessagingError) {
+        console.error('❌ Spark Messaging 에러:', error.code, error.message);
+    } else {
+        console.error('❌ Spark Messaging 에러:', error.message);
+    }
 });
 
 export default sparkMessagingClient;
@@ -480,8 +578,8 @@ SDK는 **API 키를 받아 백엔드로 전달하는 역할만** 수행합니다
 
 ```typescript
 import { useEffect, useState } from 'react';
-import SparkMessaging from 'spark-messaging-client';
-import type { MessageData, RoomMessageData } from 'spark-messaging-client';
+import SparkMessaging, { SparkMessagingError } from 'spark-messaging-client';
+import type { MessageData, RoomMessageData, ConnectionStatus } from 'spark-messaging-client';
 
 const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000';
 const projectKey = import.meta.env.VITE_PROJECT_KEY || 'default-project-key-12345';
@@ -492,17 +590,32 @@ export function useSparkMessaging() {
             new SparkMessaging({
                 serverUrl,
                 projectKey,
+                autoConnect: true,
+                debug: import.meta.env.DEV,
             })
     );
     const [isConnected, setIsConnected] = useState(false);
+    const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({
+        isConnected: false,
+        socketId: null,
+        connectedAt: null,
+    });
     const [messages, setMessages] = useState<MessageData[]>([]);
     const [roomMessages, setRoomMessages] = useState<RoomMessageData[]>([]);
+    const [joinedRooms, setJoinedRooms] = useState<string[]>([]);
 
     useEffect(() => {
-        // 연결 성공
+        // 연결 성공 (이미 연결되어 있으면 즉시 호출됨)
         const unsubscribeConnected = client.onConnected((data) => {
             setIsConnected(true);
-            console.log('연결 성공:', data.socketId);
+            setConnectionStatus(client.getConnectionStatus());
+            console.log('연결 성공:', data.socketId, data.connectedAt);
+        });
+
+        // 연결 상태 변경
+        const unsubscribeStateChange = client.onConnectionStateChange((connected) => {
+            setIsConnected(connected);
+            setConnectionStatus(client.getConnectionStatus());
         });
 
         // 메시지 수신
@@ -515,16 +628,34 @@ export function useSparkMessaging() {
             setRoomMessages((prev) => [...prev, data]);
         });
 
+        // Room 입장
+        const unsubscribeRoomJoined = client.onRoomJoined((roomId) => {
+            setJoinedRooms((prev) => [...prev, roomId]);
+        });
+
+        // Room 나가기
+        const unsubscribeRoomLeft = client.onRoomLeft((roomId) => {
+            setJoinedRooms((prev) => prev.filter((id) => id !== roomId));
+        });
+
         // 에러 처리
         const unsubscribeError = client.onError((error) => {
             setIsConnected(false);
-            console.error('에러:', error.message);
+            setConnectionStatus(client.getConnectionStatus());
+            if (error instanceof SparkMessagingError) {
+                console.error('에러 코드:', error.code, error.message);
+            } else {
+                console.error('에러:', error.message);
+            }
         });
 
         return () => {
             unsubscribeConnected();
+            unsubscribeStateChange();
             unsubscribeMessage();
             unsubscribeRoomMessage();
+            unsubscribeRoomJoined();
+            unsubscribeRoomLeft();
             unsubscribeError();
             client.disconnect();
         };
@@ -533,8 +664,10 @@ export function useSparkMessaging() {
     return {
         client,
         isConnected,
+        connectionStatus,
         messages,
         roomMessages,
+        joinedRooms,
     };
 }
 ```
@@ -547,15 +680,34 @@ import { useSparkMessaging } from './hooks/useSparkMessaging';
 function App() {
     const { client, isConnected, messages } = useSparkMessaging();
 
-    const handleSend = () => {
-        client.sendMessage('chat', 'Hello!', 'user123');
+    const handleSend = async () => {
+        try {
+            // Promise 기반 메시지 전송
+            await client.sendMessage('chat', 'Hello!', 'user123');
+            console.log('메시지 전송 성공');
+        } catch (error) {
+            console.error('메시지 전송 실패:', error);
+        }
+    };
+
+    const handleJoinRoom = async () => {
+        try {
+            await client.joinRoom('room-123');
+            console.log('Room 입장 성공');
+        } catch (error) {
+            console.error('Room 입장 실패:', error);
+        }
     };
 
     return (
         <div>
             <p>연결 상태: {isConnected ? '연결됨' : '연결 안됨'}</p>
+            <p>Socket ID: {client.getSocketId() || '없음'}</p>
             <button onClick={handleSend} disabled={!isConnected}>
                 메시지 전송
+            </button>
+            <button onClick={handleJoinRoom} disabled={!isConnected}>
+                Room 입장
             </button>
             <div>
                 {messages.map((msg, i) => (
@@ -710,6 +862,109 @@ npm run build
 
 ---
 
+## API 레퍼런스
+
+### 연결 관리
+
+```typescript
+// 연결
+await client.connect(): Promise<void>
+
+// 연결 종료
+client.disconnect(): void
+
+// 연결 상태 확인
+client.isConnected(): boolean
+
+// Socket ID 가져오기
+client.getSocketId(): string | null
+
+// 연결 상태 정보 가져오기
+client.getConnectionStatus(): ConnectionStatus
+
+// 연결 완료까지 대기
+client.waitForConnection(): Promise<ConnectionData | null>
+```
+
+### 메시지 전송
+
+```typescript
+// 일반 메시지 전송 (Promise 기반)
+await client.sendMessage(
+    type: 'chat' | 'notification' | 'system' | 'test',
+    content: string,
+    user?: string
+): Promise<void>
+
+// 방 메시지 전송 (Promise 기반)
+await client.sendRoomMessage(
+    room: string,
+    type: 'chat' | 'notification' | 'system' | 'test',
+    content: string,
+    user?: string
+): Promise<void>
+```
+
+### Room 관리
+
+```typescript
+// Room 입장
+await client.joinRoom(roomName: string): Promise<void>
+
+// Room 나가기
+await client.leaveRoom(roomName: string): Promise<void>
+
+// 참여 중인 Room 목록
+client.getJoinedRooms(): string[]
+
+// Room 참여 여부 확인
+client.isInRoom(roomName: string): boolean
+```
+
+### 이벤트 리스너
+
+```typescript
+// 연결 성공 (이미 연결되어 있으면 즉시 호출)
+client.onConnected(callback: (data: ConnectedData) => void): () => void
+
+// 연결 상태 변경
+client.onConnectionStateChange(callback: (isConnected: boolean) => void): () => void
+
+// 메시지 수신
+client.onMessage(callback: (data: MessageData) => void): () => void
+
+// 방 메시지 수신
+client.onRoomMessage(callback: (data: RoomMessageData) => void): () => void
+
+// Room 입장
+client.onRoomJoined(callback: (roomId: string) => void): () => void
+
+// Room 나가기
+client.onRoomLeft(callback: (roomId: string) => void): () => void
+
+// 에러 처리
+client.onError(callback: (error: ErrorData | SparkMessagingError) => void): () => void
+```
+
+### 타입 정의
+
+```typescript
+// 타입 import
+import type {
+    SparkMessagingOptions,
+    MessageData,
+    RoomMessageData,
+    ConnectedData,
+    ConnectionStatus,
+    ConnectionData,
+    ErrorData,
+    SparkMessagingError,
+} from 'spark-messaging-client';
+
+// 에러 클래스 import
+import { SparkMessagingError } from 'spark-messaging-client';
+```
+
 ## 트러블슈팅
 
 ### 환경 변수가 로드되지 않음
@@ -731,6 +986,77 @@ npm run build
 1. 환경 변수 사용 (빌드 시 주입)
 2. 백엔드 프록시 사용 고려
 3. 키를 서버에서 관리하는 방식으로 전환
+
+### 연결이 안 됨
+
+**문제**: `onConnected` 콜백이 호출되지 않음
+
+**해결**:
+
+```typescript
+// 방법 1: waitForConnection 사용
+const connectionData = await client.waitForConnection();
+console.log('연결 완료:', connectionData);
+
+// 방법 2: 연결 상태 확인
+const status = client.getConnectionStatus();
+if (status.isConnected) {
+    console.log('이미 연결됨:', status.socketId);
+}
+
+// 방법 3: autoConnect: false로 설정 후 수동 연결
+const client = new SparkMessaging({
+    serverUrl: '...',
+    projectKey: '...',
+    autoConnect: false,
+});
+
+// 이벤트 리스너 등록 후 연결
+client.onConnected((data) => {
+    console.log('연결됨:', data);
+});
+await client.connect();
+```
+
+### 메시지 전송 실패
+
+**문제**: `sendMessage`에서 에러 발생
+
+**해결**:
+
+```typescript
+try {
+    await client.sendMessage('chat', 'Hello');
+} catch (error) {
+    if (error instanceof SparkMessagingError) {
+        switch (error.code) {
+            case 'NOT_CONNECTED':
+                console.error('연결되지 않음');
+                await client.connect();
+                break;
+            case 'NOT_INITIALIZED':
+                console.error('SDK 초기화 필요');
+                break;
+            default:
+                console.error('에러:', error.message);
+        }
+    }
+}
+```
+
+### 디버깅
+
+**디버그 모드 활성화**:
+
+```typescript
+const client = new SparkMessaging({
+    serverUrl: '...',
+    projectKey: '...',
+    debug: true, // 상세한 로그 출력
+});
+```
+
+디버그 모드를 활성화하면 연결, 메시지 전송, 에러 등에 대한 상세한 로그가 콘솔에 출력됩니다.
 
 ---
 
