@@ -1,15 +1,16 @@
-import { ErrorData } from '../types';
+import { ErrorData, ErrorCallback } from '../types';
+import { SparkMessagingError } from './sparkMessagingError';
 
 /**
  * 에러 처리 유틸리티
  */
 export class ErrorHandler {
-    private errorCallbacks: Array<(error: ErrorData) => void> = [];
+    private errorCallbacks: ErrorCallback[] = [];
 
     /**
      * 에러 콜백 등록
      */
-    onError(callback: (error: ErrorData) => void): () => void {
+    onError(callback: ErrorCallback): () => void {
         this.errorCallbacks.push(callback);
         // 구독 해제 함수 반환
         return () => {
@@ -23,20 +24,22 @@ export class ErrorHandler {
     /**
      * 에러 발생 시 모든 콜백 호출
      */
-    handleError(error: ErrorData | Error | string): void {
-        let errorData: ErrorData;
+    handleError(error: ErrorData | Error | SparkMessagingError | string): void {
+        let errorToEmit: ErrorData | SparkMessagingError;
 
         if (typeof error === 'string') {
-            errorData = { message: error };
+            errorToEmit = { message: error };
+        } else if (error instanceof SparkMessagingError) {
+            errorToEmit = error;
         } else if (error instanceof Error) {
-            errorData = { message: error.message };
+            errorToEmit = { message: error.message };
         } else {
-            errorData = error;
+            errorToEmit = error;
         }
 
         this.errorCallbacks.forEach((callback) => {
             try {
-                callback(errorData);
+                callback(errorToEmit);
             } catch (err) {
                 console.error('Error in error callback:', err);
             }

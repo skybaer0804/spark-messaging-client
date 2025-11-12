@@ -26,6 +26,7 @@ export class MessageHandler {
                     callback({
                         message: data.message || 'Connected to server',
                         socketId: data.socketId || this.socket.id || '',
+                        connectedAt: new Date(),
                     });
                 } catch (error) {
                     console.error('Error in connected callback:', error);
